@@ -20,7 +20,7 @@ from dotenv import load_dotenv
 load_dotenv()
 TOKEN = os.getenv('DISCORD_TOKEN')
 intents = discord.Intents.default()
-#intents.message_content = True
+intents.message_content = True
 # Necessary else keyword error
 bot = commands.Bot(command_prefix='!', intents=intents)
 
@@ -35,18 +35,26 @@ async def on_ready():
 @bot.command()
 async def test(ctx, arg):
     await ctx.send(arg)
-    pass
+    print(f"Can read test message")
 
-@bot.command(name='hello')
-async def hello_test(ctx):
-    await ctx.send("Hello!")
+@bot.command()
+async def summon(ctx):
+    if not ctx.message.author.voice:
+        await ctx.send("{} is not connected to a voice channel".format(ctx.message.author.name))
+        return
+    else:
+        channel = ctx.message.author.voice.channel
+        await channel.connect()
 
-@bot.event
-async def on_message(message):
-    print(message.author, ": ", message)
+@bot.command()
+async def banish(ctx):
+    vc = ctx.message.guild.voice_client
+    if vc:
+        await vc.disconnect()
+    else:
+        await ctx.send("SoundBot is not connected to a voice channel")
 
-
-
+    #ctx.voice_client.play(discord.FFmpegPCMAudio("/audio_samples/Windows_Shutdown.mp3"))
 
 # Activate bot
 bot.run(TOKEN)
