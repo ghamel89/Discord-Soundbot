@@ -17,12 +17,15 @@ from dotenv import load_dotenv
 
 ### Excuse my blatent tutorial code figuring out the start of this
 
+
+
 load_dotenv()
 TOKEN = os.getenv('DISCORD_TOKEN')
 intents = discord.Intents.default()
 intents.message_content = True
 # Necessary else keyword error
 bot = commands.Bot(command_prefix='!', intents=intents)
+vc = None
 
 
 # Ready function, runs when bot is activated
@@ -44,17 +47,37 @@ async def summon(ctx):
         return
     else:
         channel = ctx.message.author.voice.channel
-        await channel.connect()
+        vc = await channel.connect()
+        await ctx.send("Working with a {} now".format(vc.channel))
 
 @bot.command()
 async def banish(ctx):
-    vc = ctx.message.guild.voice_client
+    #voice_channel = ctx.message.guild.voice_client
     if vc:
+        #ctx.voice_client.play(executable="ffmpeg.exe", source=discord.FFmpegPCMAudio("/audio_samples/Windows_Shutdown.mp3"))
         await vc.disconnect()
     else:
         await ctx.send("SoundBot is not connected to a voice channel")
 
-    #ctx.voice_client.play(discord.FFmpegPCMAudio("/audio_samples/Windows_Shutdown.mp3"))
+@bot.command()
+async def give_me_info(ctx):
+    vc = discord.utils.get(bot.voice_clients, guild=ctx.guild)
+    if vc is None:
+        await ctx.send("SoundBot is not in a voice channel")
+    else:
+        await ctx.send("SoundBot is in {}".format(vc.channel))
+
+
+@bot.command()
+async def play(ctx):
+    vc = ctx.author.voice.channel
+    if vc != None:
+        
+        vc.play(discord.FFmpegPCMAudio(executable="ffmpeg.exe", source="/audio_samples/Windows_Shutdown.mp3"))
+
+    else:
+        await ctx.send("{} is not in a voice channel".format(ctx.author.name))
+
 
 # Activate bot
 bot.run(TOKEN)
