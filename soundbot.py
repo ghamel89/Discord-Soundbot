@@ -52,7 +52,7 @@ async def summon(ctx):
 
 @bot.command()
 async def banish(ctx):
-    #voice_channel = ctx.message.guild.voice_client
+    vc = ctx.message.guild.voice_client
     if vc:
         #ctx.voice_client.play(executable="ffmpeg.exe", source=discord.FFmpegPCMAudio("/audio_samples/Windows_Shutdown.mp3"))
         await vc.disconnect()
@@ -70,10 +70,10 @@ async def give_me_info(ctx):
 
 @bot.command()
 async def play(ctx):
-    vc = ctx.author.voice.channel
+    vc = ctx.message.guild.voice_client
     if vc != None:
         
-        vc.play(discord.FFmpegPCMAudio(executable="ffmpeg.exe", source="/audio_samples/Windows_Shutdown.mp3"))
+        vc.play(discord.FFmpegPCMAudio(executable="C:/ffmpeg/bin/ffmpeg.exe", source="E:/Users/ghame/Desktop/Code/audio_samples/Windows_Shutdown.mp3"))
 
     else:
         await ctx.send("{} is not in a voice channel".format(ctx.author.name))
