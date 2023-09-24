@@ -2,6 +2,10 @@ import discord
 from discord.ext import commands
 import os
 from dotenv import load_dotenv
+import time
+import youtube_dl
+import json
+from audio_file import AudioFile
 
 # Discord bot to control playing music and sound effects in voice channels
 
@@ -54,7 +58,7 @@ async def summon(ctx):
 async def banish(ctx):
     vc = ctx.message.guild.voice_client
     if vc:
-        #ctx.voice_client.play(executable="ffmpeg.exe", source=discord.FFmpegPCMAudio("/audio_samples/Windows_Shutdown.mp3"))
+        # vc.play(discord.FFmpegPCMAudio(executable="C:/ffmpeg/bin/ffmpeg.exe", source="E:/Users/ghame/Desktop/Code/audio_samples/Windows_Shutdown.mp3"))
         await vc.disconnect()
     else:
         await ctx.send("SoundBot is not connected to a voice channel")
@@ -77,6 +81,40 @@ async def play(ctx):
 
     else:
         await ctx.send("{} is not in a voice channel".format(ctx.author.name))
+
+@bot.command()
+async def save(ctx, video_link, start_time, end_time, shortcut_name):
+    sound_objects = []
+    filepath = "audio_samples/" + shortcut_name + ".mp3"
+    test_obj = {
+        "link" : video_link,
+        "start" : start_time,
+        "end" : end_time,
+        "shortcut" : shortcut_name,
+        "filepath" : filepath
+    }
+    # Grab existing file
+    try:
+        with open("saved_sounds.json", "r") as infile:
+            sound_objects : list = json.load(infile)
+    except:
+        await ctx.send("saved_sounds.json is blank I think")
+    #dump_me = json.dumps(test_obj)
+    await ctx.send("Printing json test object")
+    await ctx.send(test_obj)
+
+    sound_objects.append(test_obj)
+
+    with open("saved_sounds.json", "w") as outfile:
+        json.dump(sound_objects, outfile, indent=4, separators=(',',': '))
+
+@bot.command()
+async def load(ctx):
+    with open('saved_sounds.json', 'r') as openfile:
+        saves = json.load(openfile)
+
+    await ctx.send("Reading test object from json file")
+    await ctx.send(saves)
 
 
 # Activate bot
