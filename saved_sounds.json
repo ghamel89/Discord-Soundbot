@@ -19,5 +19,12 @@
         "end": "7",
         "shortcut": "final_test",
         "filepath": "audio_samples/final_test.mp3"
+    },
+    {
+        "link": "item4",
+        "start": "1",
+        "end": "7",
+        "shortcut": "final_test4",
+        "filepath": "audio_samples/final_test4.mp3"
     }
 ]

@@ -42,7 +42,7 @@ async def on_ready():
 
 # Command will play a test sound if bot and message sender are in same channel
 @bot.command()
-async def test(ctx, arg):
+async def test(ctx):
     vc = ctx.message.guild.voice_client
     if vc != None:
         
@@ -57,6 +57,18 @@ async def summon(ctx):
     if not ctx.message.author.voice:
         await ctx.send("{} is not connected to a voice channel".format(ctx.message.author.name))
         return
+    elif ctx.message.guild.voice_client:
+        # SoundBot is already in a voice channel, this should pop
+        vc = ctx.message.guild.voice_client
+        await ctx.send("SoundBot is currently in {}".format(vc.channel))
+        for entry in ctx.message.author.roles:
+            await ctx.send("{} is a {}".format(ctx.message.author.name, entry))
+        admin = discord.utils.find(lambda r: r.name == 'Admin', ctx.message.guild.roles)
+        if admin in ctx.message.author.roles:
+            await banish(ctx)
+            await summon(ctx)
+        else:
+            await ctx.send("{} is not important enough to move SoundBot, scrub".format(ctx.message.author.name))
     else:
         channel = ctx.message.author.voice.channel
         vc = await channel.connect()
@@ -66,16 +78,32 @@ async def summon(ctx):
 @bot.command()
 async def banish(ctx):
     vc = ctx.message.guild.voice_client
-    if vc:
-        # vc.play(discord.FFmpegPCMAudio(executable="C:/ffmpeg/bin/ffmpeg.exe", source="E:/Users/ghame/Desktop/Code/audio_samples/Windows_Shutdown.mp3"))
-        await vc.disconnect()
-    else:
-        await ctx.send("SoundBot is not connected to a voice channel")
+    
+    try:
+        if vc and vc.channel == ctx.message.author.voice.channel:
+            # vc.play(discord.FFmpegPCMAudio(executable="C:/ffmpeg/bin/ffmpeg.exe", source="E:/Users/ghame/Desktop/Code/audio_samples/Windows_Shutdown.mp3"))
+            await vc.disconnect()
+        elif vc:
+            await ctx.send("Must be in the same channel as SoundBot, I can't hear you from that far away")
+        else:
+            await ctx.send("SoundBot is not connected to a voice channel")
+    except:
+        await ctx.send("Something went wrong, try being in the same channel")
 
 # Will play from youtube link
 @bot.command()
 async def play(ctx, video_link):
-    pass
+    ydl_opts = {
+    'format': 'bestaudio/best',
+    'postprocessors': [{
+        'key': 'FFmpegExtractAudio',
+        'preferredcodec': 'mp3',
+        'preferredquality': '192',
+    }]}
+
+    with youtube_dl.YoutubeDL(ydl_opts) as ydl:
+        ydl.download([video_link])
+    
     
 
 @bot.command()
