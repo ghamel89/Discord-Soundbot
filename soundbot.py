@@ -6,6 +6,7 @@ import time
 import youtube_dl
 import json
 from audio_file import AudioFile
+from YTDL_source import YTDLSource
 
 # Discord bot to control playing music and sound effects in voice channels
 
@@ -40,6 +41,7 @@ async def on_ready():
     print(f"SoundBot is now Active")
     pass
 
+
 # Command will play a test sound if bot and message sender are in same channel
 @bot.command()
 async def test(ctx):
@@ -51,6 +53,7 @@ async def test(ctx):
     else:
         await ctx.send("{} is not in a voice channel".format(ctx.author.name))
 
+
 # Summons bot to channel message sender is currently in
 @bot.command()
 async def summon(ctx):
@@ -61,11 +64,13 @@ async def summon(ctx):
         # SoundBot is already in a voice channel, this should pop
         vc = ctx.message.guild.voice_client
         await ctx.send("SoundBot is currently in {}".format(vc.channel))
+
         for entry in ctx.message.author.roles:
             await ctx.send("{} is a {}".format(ctx.message.author.name, entry))
         admin = discord.utils.find(lambda r: r.name == 'Admin', ctx.message.guild.roles)
+
         if admin in ctx.message.author.roles:
-            await banish(ctx)
+            await full_banish(ctx)
             await summon(ctx)
         else:
             await ctx.send("{} is not important enough to move SoundBot, scrub".format(ctx.message.author.name))
@@ -73,6 +78,12 @@ async def summon(ctx):
         channel = ctx.message.author.voice.channel
         vc = await channel.connect()
         await ctx.send("Working with a {} now".format(vc.channel))
+
+
+async def full_banish(ctx):
+    vc = ctx.message.guild.voice_client
+    await vc.disconnect()
+
 
 # Removes bot from voice channel
 @bot.command()
@@ -90,20 +101,19 @@ async def banish(ctx):
     except:
         await ctx.send("Something went wrong, try being in the same channel")
 
+
 # Will play from youtube link
 @bot.command()
 async def play(ctx, video_link):
-    ydl_opts = {
-    'format': 'bestaudio/best',
-    'postprocessors': [{
-        'key': 'FFmpegExtractAudio',
-        'preferredcodec': 'mp3',
-        'preferredquality': '192',
-    }]}
+    print("Recieved {}".format(video_link))
+    server = ctx.message.guild
+    vc = server.voice_client
 
-    with youtube_dl.YoutubeDL(ydl_opts) as ydl:
-        ydl.download([video_link])
-    
+    async with ctx.typing():
+        player = await YTDLSource.from_url(video_link, loop=None)
+        ctx.voice_channel.play(player, after=lambda e: print('Oh Shit: %s' %e) if e else None)
+
+    await ctx.send('Jamming to: {}'.format(player.title))
     
 
 @bot.command()
@@ -131,6 +141,7 @@ async def save(ctx, video_link, start_time, end_time, shortcut_name):
 
     with open("saved_sounds.json", "w") as outfile:
         json.dump(sound_objects, outfile, indent=4, separators=(',',': '))
+
 
 @bot.command()
 async def load(ctx):
