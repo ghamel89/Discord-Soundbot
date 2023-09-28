@@ -3,10 +3,9 @@ from discord.ext import commands
 import os
 from dotenv import load_dotenv
 import time
-import youtube_dl
+import yt_dlp
+from yt_dlp import YoutubeDL
 import json
-from audio_file import AudioFile
-from YTDL_source import YTDLSource
 
 # Discord bot to control playing music and sound effects in voice channels
 
@@ -25,6 +24,9 @@ from YTDL_source import YTDLSource
 
 load_dotenv()
 TOKEN = os.getenv('DISCORD_TOKEN')
+FFMPEG_PATH = "C:/ffmpeg/bin/ffmpeg.exe"
+AUDIO_PATH = "E:/Users/ghame/Desktop/Code/audio_samples/"
+TEMP_PLAY_PATH = "E:/Users/ghame/Desktop/Code/audio_samples/play.mp3"
 intents = discord.Intents.default()
 intents.message_content = True
 # Necessary else keyword error
@@ -47,8 +49,8 @@ async def on_ready():
 async def test(ctx):
     vc = ctx.message.guild.voice_client
     if vc != None:
-        
-        vc.play(discord.FFmpegPCMAudio(executable="C:/ffmpeg/bin/ffmpeg.exe", source="E:/Users/ghame/Desktop/Code/audio_samples/Windows_Shutdown.mp3"))
+        play_this = AUDIO_PATH + "Windows_Shutdown.mp3"
+        vc.play(discord.FFmpegPCMAudio(executable=FFMPEG_PATH, source=play_this))
 
     else:
         await ctx.send("{} is not in a voice channel".format(ctx.author.name))
@@ -77,7 +79,7 @@ async def summon(ctx):
     else:
         channel = ctx.message.author.voice.channel
         vc = await channel.connect()
-        await ctx.send("Working with a {} now".format(vc.channel))
+        await ctx.send("SoundBot is now in {}".format(vc.channel))
 
 
 async def full_banish(ctx):
@@ -105,16 +107,69 @@ async def banish(ctx):
 # Will play from youtube link
 @bot.command()
 async def play(ctx, video_link):
-    print("Recieved {}".format(video_link))
-    server = ctx.message.guild
-    vc = server.voice_client
+    ydl_opts = {
+    'format': 'm4a/bestaudio/best',
+    'outtmpl': '/audio_samples/play',
+    'postprocessors': [{
+        'key': 'FFmpegExtractAudio',
+        'preferredcodec': 'mp3',
+        }]
+    }
+    with YoutubeDL(ydl_opts) as ydl:
+        ydl.download([video_link])
 
-    async with ctx.typing():
-        player = await YTDLSource.from_url(video_link, loop=None)
-        ctx.voice_channel.play(player, after=lambda e: print('Oh Shit: %s' %e) if e else None)
+    try: 
+        vc = ctx.message.guild.voice_client
+        if vc and vc.channel == ctx.message.author.voice.channel:
+            #await ctx.send("Inside Playing")
+            vc.play(discord.FFmpegPCMAudio(executable=FFMPEG_PATH, source=TEMP_PLAY_PATH))
+        else:
+            await ctx.send("Nope")
+    except:
+        await ctx.send("Here I go Fucking Up again")
 
-    await ctx.send('Jamming to: {}'.format(player.title))
-    
+
+# Testing command to play last downloaded temp file
+@bot.command()
+async def justplay(ctx):
+    vc = ctx.message.guild.voice_client
+    vc.play(discord.FFmpegPCMAudio(executable=FFMPEG_PATH, source=TEMP_PLAY_PATH))
+
+
+#Pauses currently playing audio
+@bot.command()
+async def pause(ctx):
+    vc = ctx.message.guild.voice_client
+    if vc.is_playing():
+        vc.pause()
+    elif vc.is_paused():
+        await ctx.send("Try 'Resume'?")
+    else:
+        await ctx.send("Nothing to pause")
+
+
+# Resumes currently playing audio
+@bot.command()
+async def resume(ctx):
+    vc = ctx.message.guild.voice_client
+    if vc.is_paused():
+        vc.resume()
+    elif vc.is_playing():
+        await ctx.send("Turn your volume up, it's already playing")
+    else:
+        await ctx.send("Nothing to play, so sad")
+
+
+# Stops currently playing audio
+@bot.command()
+async def stop(ctx):
+    vc = ctx.message.guild.voice_client
+    if vc.is_playing() or vc.is_paused():
+        vc.stop()
+        await ctx.send("Stopping now")
+    else:
+        await ctx.send("Nothing playing or paused")
+
 
 @bot.command()
 async def save(ctx, video_link, start_time, end_time, shortcut_name):
@@ -150,7 +205,14 @@ async def load(ctx):
 
     await ctx.send("Reading test object from json file")
     for object in saves:
-        await ctx.send(object)
+        await ctx.send(object['shortcut'])
+
+
+@bot.command()
+async def pmtest(ctx):
+    sender = ctx.message.author
+
+    await sender.send("Secret")
 
 
 
