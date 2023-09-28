@@ -1,4 +1,5 @@
 #.gitignore
+saved_sounds.json
 
 # Environments
 .env

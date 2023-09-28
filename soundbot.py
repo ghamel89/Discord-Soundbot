@@ -44,6 +44,14 @@ async def on_ready():
     pass
 
 
+# Basic command, will direct user to github repo where if they know how to read
+#   they might find the commands
+@bot.command()
+async def helpme(ctx):
+    await ctx.send("Scroll down for the README")
+    await ctx.send("https://github.com/ghamel89/Discord-Soundbot")
+
+
 # Command will play a test sound if bot and message sender are in same channel
 @bot.command()
 async def test(ctx):
