@@ -5,21 +5,10 @@ from dotenv import load_dotenv
 import time
 import yt_dlp
 from yt_dlp import YoutubeDL
+from yt_dlp.utils import download_range_func
 import json
 
 # Discord bot to control playing music and sound effects in voice channels
-
-
-                    ### Features ###
-# Usage: '! [command]' to bring into voice channel and to remove
-# Commands to grab audio from youtube videos -> need feature to trim audio
-# Call to list all saved clips and use reactions on that post to use functions
-
-                    ### Stretch Goals ###
-# If possible, use reactions to control 'play' 'pause' 'stop' and volume adjustments
-# See if possible to have a command to drop it into a voice channel without being present, for trolling / spamming
-
-### Excuse my blatent tutorial code figuring out the start of this
 
 
 load_dotenv()
@@ -125,16 +114,55 @@ async def play(ctx, video_link):
     }
     with YoutubeDL(ydl_opts) as ydl:
         ydl.download([video_link])
+    #     info = ydl.extract_info(video_link, download=False)
+
+    # await ctx.send(info.get("title", None))
 
     try: 
         vc = ctx.message.guild.voice_client
         if vc and vc.channel == ctx.message.author.voice.channel:
             #await ctx.send("Inside Playing")
             vc.play(discord.FFmpegPCMAudio(executable=FFMPEG_PATH, source=TEMP_PLAY_PATH))
+            #await ctx.send(info)
         else:
             await ctx.send("Nope")
     except:
         await ctx.send("Here I go Fucking Up again")
+
+
+# Play a saved sound via shortcut
+@bot.command()
+async def nowplay(ctx, shortcut):
+
+    do_i_have_it = None
+    with open('saved_sounds.json', 'r') as openfile:
+        saves = json.load(openfile)
+
+    for object in saves:
+        if object['shortcut'] == shortcut:
+            do_i_have_it = object['filepath']
+
+    if do_i_have_it:
+        vc = ctx.message.guild.voice_client
+        vc.play(discord.FFmpegPCMAudio(executable=FFMPEG_PATH, source=do_i_have_it))
+    else:
+        await ctx.send("No shortcut with the name {}".format(shortcut))
+
+
+# Privately send a list of all sounds saved
+@bot.command()
+async def list(ctx):
+    user = ctx.message.author
+
+    with open('saved_sounds.json', 'r') as openfile:
+        saved = json.load(openfile)
+
+    await user.send("Here are all the saved clips:")
+
+    for item in saved:
+        await user.send("{} \t-\t Plays - \t {}".format(item['shortcut'], item['title']))
+
+    await user.send("\n This has been all of the saved clips")
 
 
 # Testing command to play last downloaded temp file
@@ -180,13 +208,38 @@ async def stop(ctx):
 
 
 @bot.command()
-async def save(ctx, video_link, start_time, end_time, shortcut_name):
+async def save(ctx, video_link, shortcut_name, start_time=None, end_time=None):
+
+    output = "/audio_samples/" + shortcut_name
+    if start_time and end_time:
+        ydl_opts = {
+        'format': 'm4a/bestaudio/best',
+        'outtmpl': output,
+        'download_ranges': download_range_func(None, [(start_time, end_time)]),
+        'postprocessors': [{
+            'key': 'FFmpegExtractAudio',
+            'preferredcodec': 'mp3',
+            }]
+        }
+    else:
+        ydl_opts = {
+        'format': 'm4a/bestaudio/best',
+        'outtmpl': output,
+        'postprocessors': [{
+            'key': 'FFmpegExtractAudio',
+            'preferredcodec': 'mp3',
+            }]
+        }
+    with YoutubeDL(ydl_opts) as ydl:
+        ydl.download([video_link])
+        info = ydl.extract_info(video_link, download=False)
+
+    title = info.get("title")
+
     sound_objects = []
     filepath = "audio_samples/" + shortcut_name + ".mp3"
     test_obj = {
-        "link" : video_link,
-        "start" : start_time,
-        "end" : end_time,
+        "title" : title,
         "shortcut" : shortcut_name,
         "filepath" : filepath
     }
@@ -196,24 +249,12 @@ async def save(ctx, video_link, start_time, end_time, shortcut_name):
             sound_objects : list = json.load(infile)
     except:
         await ctx.send("saved_sounds.json is blank I think")
-    #dump_me = json.dumps(test_obj)
-    await ctx.send("Printing json test object")
-    await ctx.send(test_obj)
-
+    
     sound_objects.append(test_obj)
 
     with open("saved_sounds.json", "w") as outfile:
         json.dump(sound_objects, outfile, indent=4, separators=(',',': '))
 
-
-@bot.command()
-async def load(ctx):
-    with open('saved_sounds.json', 'r') as openfile:
-        saves = json.load(openfile)
-
-    await ctx.send("Reading test object from json file")
-    for object in saves:
-        await ctx.send(object['shortcut'])
 
 
 @bot.command()
