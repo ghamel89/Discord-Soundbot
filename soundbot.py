@@ -2,7 +2,7 @@ import discord
 from discord.ext import commands
 import os
 from dotenv import load_dotenv
-import time
+from datetime import datetime
 import yt_dlp
 from yt_dlp import YoutubeDL
 from yt_dlp.utils import download_range_func
@@ -143,8 +143,11 @@ async def nowplay(ctx, shortcut):
             do_i_have_it = object['filepath']
 
     if do_i_have_it:
-        vc = ctx.message.guild.voice_client
-        vc.play(discord.FFmpegPCMAudio(executable=FFMPEG_PATH, source=do_i_have_it))
+        try:
+            vc = ctx.message.guild.voice_client
+            vc.play(discord.FFmpegPCMAudio(executable=FFMPEG_PATH, source=do_i_have_it))
+        except:
+            await ctx.send("If you're seeing this, I'm probably not in a voice channel, try !summon")
     else:
         await ctx.send("No shortcut with the name {}".format(shortcut))
 
@@ -209,9 +212,22 @@ async def stop(ctx):
 
 @bot.command()
 async def save(ctx, video_link, shortcut_name, start_time=None, end_time=None):
+    # Grab existing file
+    try:
+        with open("saved_sounds.json", "r") as infile:
+            sound_objects : list = json.load(infile)
+    except:
+        await ctx.send("saved_sounds.json is blank I think")
 
+    for item in sound_objects:
+        if item['shortcut'] == shortcut_name:
+            await ctx.send("Clip with that name exists already")
+            return
+        
     output = "/audio_samples/" + shortcut_name
     if start_time and end_time:
+        start_time = convert_time(start_time)
+        end_time = convert_time(end_time)
         ydl_opts = {
         'format': 'm4a/bestaudio/best',
         'outtmpl': output,
@@ -236,27 +252,52 @@ async def save(ctx, video_link, shortcut_name, start_time=None, end_time=None):
 
     title = info.get("title")
 
-    sound_objects = []
-    filepath = "audio_samples/" + shortcut_name + ".mp3"
+    #sound_objects = []
+    filepath = AUDIO_PATH + shortcut_name + ".mp3"
     test_obj = {
         "title" : title,
         "shortcut" : shortcut_name,
         "filepath" : filepath
     }
-    # Grab existing file
-    try:
-        with open("saved_sounds.json", "r") as infile:
-            sound_objects : list = json.load(infile)
-    except:
-        await ctx.send("saved_sounds.json is blank I think")
+    
     
     sound_objects.append(test_obj)
 
     with open("saved_sounds.json", "w") as outfile:
         json.dump(sound_objects, outfile, indent=4, separators=(',',': '))
 
+    await ctx.send("Successfully saved {}".format(shortcut_name))
 
 
+# Remove a saved sound
+@bot.command()
+async def delete(ctx, shortcut_name):
+    # Grab existing file
+    try:
+        with open("saved_sounds.json", "r") as infile:
+            sound_objects : list = json.load(infile)
+    except:
+        await ctx.send("saved_sounds.json is blank, I think")
+
+    for item in sound_objects:
+        if item['shortcut'] == shortcut_name:
+    
+            filepath = item['filepath']
+            try:
+                os.remove(filepath)
+                sound_objects.remove(item)
+                with open("saved_sounds.json", "w") as outfile:
+                    json.dump(sound_objects, outfile, indent=4, separators=(',',': '))
+                await ctx.send("Successfully removed {}".format(item['shortcut']))
+                return
+            except Exception as e:
+                print(e)
+                await ctx.send("Something went wrong, I couldn't find that file")
+
+    await ctx.send("Couldn't find a saved clip with that name, try !list to see a list of currently saved clips.")
+
+
+# Test Command to send a user a private message
 @bot.command()
 async def pmtest(ctx):
     sender = ctx.message.author
@@ -264,6 +305,9 @@ async def pmtest(ctx):
     await sender.send("Secret")
 
 
+def convert_time(time):
+    
+    return sum(x * int(t) for x, t in zip([1, 60, 3600], reversed(time.split(":"))))
 
 # Activate bot
 bot.run(TOKEN)
