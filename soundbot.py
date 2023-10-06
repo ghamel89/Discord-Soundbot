@@ -13,9 +13,10 @@ import json
 
 load_dotenv()
 TOKEN = os.getenv('DISCORD_TOKEN')
-FFMPEG_PATH = "C:/ffmpeg/bin/ffmpeg.exe"
-AUDIO_PATH = "E:/Users/ghame/Desktop/Code/audio_samples/"
-TEMP_PLAY_PATH = "E:/Users/ghame/Desktop/Code/audio_samples/play.mp3"
+AUDIO_PATH = os.getenv('AUDIO_PATH')
+FFMPEG_PATH = os.getenv('FFMPEG')
+TEMP_PLAY_PATH = AUDIO_PATH + "play.mp3"
+
 intents = discord.Intents.default()
 intents.message_content = True
 # Necessary else keyword error
