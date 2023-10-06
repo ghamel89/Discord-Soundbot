@@ -92,7 +92,6 @@ async def banish(ctx):
     
     try:
         if vc and vc.channel == ctx.message.author.voice.channel:
-            # vc.play(discord.FFmpegPCMAudio(executable="C:/ffmpeg/bin/ffmpeg.exe", source="E:/Users/ghame/Desktop/Code/audio_samples/Windows_Shutdown.mp3"))
             await vc.disconnect()
         elif vc:
             await ctx.send("Must be in the same channel as SoundBot, I can't hear you from that far away")
@@ -115,16 +114,11 @@ async def play(ctx, video_link):
     }
     with YoutubeDL(ydl_opts) as ydl:
         ydl.download([video_link])
-    #     info = ydl.extract_info(video_link, download=False)
-
-    # await ctx.send(info.get("title", None))
 
     try: 
         vc = ctx.message.guild.voice_client
         if vc and vc.channel == ctx.message.author.voice.channel:
-            #await ctx.send("Inside Playing")
             vc.play(discord.FFmpegPCMAudio(executable=FFMPEG_PATH, source=TEMP_PLAY_PATH))
-            #await ctx.send(info)
         else:
             await ctx.send("Nope")
     except:
